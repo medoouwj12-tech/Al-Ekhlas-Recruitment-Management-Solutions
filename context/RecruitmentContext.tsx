@@ -49,44 +49,44 @@ interface RecruitmentContextType {
 const RecruitmentContext = createContext<RecruitmentContextType | undefined>(undefined);
 
 export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [employerRequests, setEmployerRequests] = useState<EmployerRequest[]>([]);
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [employerRequests, setEmployerRequests] = useState<EmployerRequest[]>(initialEmployerRequests);
+  const [candidates, setCandidates] = useState<Candidate[]>(initialCandidates);
+  const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
   const [toasts, setToasts] = useState<ToastData[]>([]);
   const [mounted, setMounted] = useState(false);
 
-  // Initialize data from localStorage or initial mockData
+  // Initialize data from localStorage safely
   useEffect(() => {
     try {
       const savedOrders = localStorage.getItem("al_ekhlas_orders");
+      if (savedOrders && savedOrders !== "undefined" && savedOrders !== "null") {
+        const parsed = JSON.parse(savedOrders);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setEmployerRequests(parsed);
+        }
+      }
+    } catch {}
+
+    try {
       const savedCandidates = localStorage.getItem("al_ekhlas_candidates");
+      if (savedCandidates && savedCandidates !== "undefined" && savedCandidates !== "null") {
+        const parsed = JSON.parse(savedCandidates);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCandidates(parsed);
+        }
+      }
+    } catch {}
+
+    try {
       const savedNotifications = localStorage.getItem("al_ekhlas_notifications");
-
-      if (savedOrders) {
-        setEmployerRequests(JSON.parse(savedOrders));
-      } else {
-        setEmployerRequests(initialEmployerRequests);
-        localStorage.setItem("al_ekhlas_orders", JSON.stringify(initialEmployerRequests));
+      if (savedNotifications && savedNotifications !== "undefined" && savedNotifications !== "null") {
+        const parsed = JSON.parse(savedNotifications);
+        if (Array.isArray(parsed)) {
+          setNotifications(parsed);
+        }
       }
+    } catch {}
 
-      if (savedCandidates) {
-        setCandidates(JSON.parse(savedCandidates));
-      } else {
-        setCandidates(initialCandidates);
-        localStorage.setItem("al_ekhlas_candidates", JSON.stringify(initialCandidates));
-      }
-
-      if (savedNotifications) {
-        setNotifications(JSON.parse(savedNotifications));
-      } else {
-        setNotifications(initialNotifications);
-        localStorage.setItem("al_ekhlas_notifications", JSON.stringify(initialNotifications));
-      }
-    } catch {
-      setEmployerRequests(initialEmployerRequests);
-      setCandidates(initialCandidates);
-      setNotifications(initialNotifications);
-    }
     setMounted(true);
   }, []);
 
