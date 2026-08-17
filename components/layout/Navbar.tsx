@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -48,10 +49,13 @@ export const Navbar: React.FC = () => {
           {/* Logo & Brand Identity */}
           <Link href="/" className="flex items-center gap-3 group">
             <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-0.5 shadow-md shadow-brand-500/10 group-hover:scale-105 transition-transform flex items-center justify-center overflow-hidden">
-              <img
+              <Image
                 src="/logo.png"
                 alt="شركة الإخلاص للتوظيف بالخارج"
+                width={48}
+                height={48}
                 className="w-full h-full object-contain rounded-lg"
+                priority
               />
             </div>
             <div className="flex flex-col">

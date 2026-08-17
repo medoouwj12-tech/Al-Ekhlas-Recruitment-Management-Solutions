@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useLanguage } from "@/context/LanguageContext";
 import { 
   Building2, 
@@ -25,9 +26,11 @@ export const Footer: React.FC = () => {
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-white p-1 flex items-center justify-center text-white shadow-lg shadow-brand-500/10 flex-shrink-0 overflow-hidden">
-                <img
+                <Image
                   src="/logo.png"
                   alt="شركة الإخلاص للتوظيف بالخارج"
+                  width={48}
+                  height={48}
                   className="w-full h-full object-contain rounded-lg"
                 />
               </div>
