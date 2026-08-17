@@ -47,20 +47,24 @@ export const Navbar: React.FC = () => {
         <div className="flex items-center justify-between h-20">
           {/* Logo & Brand Identity */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-brand-500/20 group-hover:scale-105 transition-transform">
-              <Building2 className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-0.5 shadow-md shadow-brand-500/10 group-hover:scale-105 transition-transform flex items-center justify-center overflow-hidden">
+              <img
+                src="/logo.png"
+                alt="شركة الإخلاص للتوظيف بالخارج"
+                className="w-full h-full object-contain rounded-lg"
+              />
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-lg sm:text-xl tracking-tight text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+                <span className="font-extrabold text-base sm:text-lg tracking-tight text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
                   {language === "ar" ? "شركة الإخلاص" : "Al-Ekhlas"}
                 </span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20 hidden sm:inline-block">
-                  {language === "ar" ? "للتوظيف" : "Recruitment"}
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">
+                  {language === "ar" ? "ترخيص 509" : "Lic. 509"}
                 </span>
               </div>
               <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                {language === "ar" ? "والحلول الإدارية المتكاملة" : "Management Solutions"}
+                {language === "ar" ? "للتوظيف بالخارج" : "Overseas Recruitment"}
               </span>
             </div>
           </Link>

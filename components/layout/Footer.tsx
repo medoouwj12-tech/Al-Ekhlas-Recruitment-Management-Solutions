@@ -24,15 +24,19 @@ export const Footer: React.FC = () => {
           {/* Col 1 & 2: Brand & License */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
-                <Building2 className="w-5 h-5" />
+              <div className="w-12 h-12 rounded-xl bg-white p-1 flex items-center justify-center text-white shadow-lg shadow-brand-500/10 flex-shrink-0 overflow-hidden">
+                <img
+                  src="/logo.png"
+                  alt="شركة الإخلاص للتوظيف بالخارج"
+                  className="w-full h-full object-contain rounded-lg"
+                />
               </div>
               <div>
                 <h3 className="text-lg font-bold text-white tracking-tight">
                   {t("brandName")}
                 </h3>
                 <p className="text-xs text-brand-400 font-medium">
-                  Al-Ekhlas Recruitment & Management Solutions
+                  {language === "ar" ? "ترخيص رقم 509 لإلحاق العمالة بالخارج" : "Overseas Recruitment Lic. No. 509"}
                 </p>
               </div>
             </div>
