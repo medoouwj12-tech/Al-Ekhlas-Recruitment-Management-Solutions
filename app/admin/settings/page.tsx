@@ -4,18 +4,13 @@ import React, { useState } from "react";
 import { useRecruitment } from "@/context/RecruitmentContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { 
-  Sliders, 
-  RotateCcw, 
-  ShieldCheck, 
   Database, 
   Save, 
   Building2, 
-  CheckCircle2,
+  RotateCcw,
   RefreshCw,
-  Server,
   Cloud,
-  AlertCircle,
-  ExternalLink
+  AlertCircle
 } from "lucide-react";
 
 export default function AdminSettingsPage() {
@@ -162,25 +157,6 @@ export default function AdminSettingsPage() {
               {dbStatus.counts?.candidates ?? 0} {language === "ar" ? "مرشح مفحوص" : "candidates"}
             </span>
           </div>
-        </div>
-
-        {/* MongoDB Connection Guide Callout */}
-        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-xs space-y-2">
-          <div className="flex items-center justify-between font-bold text-slate-200">
-            <span>{language === "ar" ? "💡 كيفية ربط حسابك المجاني في MongoDB Atlas:" : "💡 Connecting your free MongoDB Atlas Cluster:"}</span>
-            <a
-              href="https://www.mongodb.com/cloud/atlas/register"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-emerald-400 hover:underline flex items-center gap-1"
-            >
-              <span>{language === "ar" ? "إنشاء حساب مجاني (M0 Cluster)" : "Create Free Atlas Cluster"}</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </div>
-          <p className="text-slate-400 leading-relaxed font-mono text-[11px] bg-black/40 p-3 rounded-xl">
-            MONGODB_URI="mongodb+srv://&lt;username&gt;:&lt;password&gt;@cluster0.mongodb.net/al_ekhlas?retryWrites=true&w=majority"
-          </p>
         </div>
       </div>
 
