@@ -11,12 +11,24 @@ export interface ToastData {
   type: "success" | "info" | "warning";
 }
 
+export interface DbStatusInfo {
+  connected: boolean;
+  provider: string;
+  message: string;
+  counts?: {
+    orders: number;
+    candidates: number;
+    notifications: number;
+  };
+}
+
 interface RecruitmentContextType {
   employerRequests: EmployerRequest[];
   candidates: Candidate[];
   notifications: NotificationItem[];
   unreadNotificationCount: number;
   toasts: ToastData[];
+  dbStatus: DbStatusInfo;
   
   // Employer Actions
   addEmployerRequest: (data: Omit<EmployerRequest, "id" | "status" | "submittedAt" | "updatedAt" | "assignedCandidateIds">) => string;
@@ -42,8 +54,9 @@ interface RecruitmentContextType {
   triggerToast: (title: string, message: string, type?: "success" | "info" | "warning") => void;
   removeToast: (id: string) => void;
   
-  // Reset demo
-  resetToDefaultData: () => void;
+  // Reset & Sync
+  refreshFromDatabase: () => Promise<void>;
+  resetToDefaultData: () => Promise<void>;
 }
 
 const RecruitmentContext = createContext<RecruitmentContextType | undefined>(undefined);
@@ -54,8 +67,62 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
   const [toasts, setToasts] = useState<ToastData[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [dbStatus, setDbStatus] = useState<DbStatusInfo>({
+    connected: false,
+    provider: "MongoDB Atlas / Local Cache",
+    message: "Initializing database...",
+  });
 
-  // Initialize data from localStorage safely
+  // Fetch from MongoDB / API routes and fallback to localStorage
+  const refreshFromDatabase = async () => {
+    try {
+      // 1. Check DB Health
+      const statusRes = await fetch("/api/status");
+      if (statusRes.ok) {
+        const statusData = await statusRes.json();
+        setDbStatus({
+          connected: statusData.connected,
+          provider: statusData.provider || "MongoDB Atlas",
+          message: statusData.message || (statusData.connected ? "Connected" : "Disconnected"),
+          counts: statusData.counts,
+        });
+      }
+
+      // 2. Fetch Orders
+      const ordersRes = await fetch("/api/employers");
+      if (ordersRes.ok) {
+        const ordersData = await ordersRes.json();
+        if (ordersData.success && Array.isArray(ordersData.data) && ordersData.data.length > 0) {
+          setEmployerRequests(ordersData.data);
+          localStorage.setItem("al_ekhlas_orders", JSON.stringify(ordersData.data));
+        }
+      }
+
+      // 3. Fetch Candidates
+      const candRes = await fetch("/api/candidates");
+      if (candRes.ok) {
+        const candData = await candRes.json();
+        if (candData.success && Array.isArray(candData.data) && candData.data.length > 0) {
+          setCandidates(candData.data);
+          localStorage.setItem("al_ekhlas_candidates", JSON.stringify(candData.data));
+        }
+      }
+
+      // 4. Fetch Notifications
+      const notifRes = await fetch("/api/notifications");
+      if (notifRes.ok) {
+        const notifData = await notifRes.json();
+        if (notifData.success && Array.isArray(notifData.data)) {
+          setNotifications(notifData.data);
+          localStorage.setItem("al_ekhlas_notifications", JSON.stringify(notifData.data));
+        }
+      }
+    } catch (e) {
+      console.warn("Using offline / local storage state mode.", e);
+    }
+  };
+
+  // Initialize data on mount
   useEffect(() => {
     try {
       const savedOrders = localStorage.getItem("al_ekhlas_orders");
@@ -88,6 +155,7 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } catch {}
 
     setMounted(true);
+    refreshFromDatabase();
   }, []);
 
   // Save to localStorage on state changes
@@ -157,6 +225,13 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setNotifications((prev) => [newNotif, ...prev]);
     triggerToast("تم استلام طلب الشركة بنجاح", `تم تسجيل طلب ${data.companyName} (${data.jobTitle})`, "success");
 
+    // Async sync with MongoDB API
+    fetch("/api/employers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newRequest),
+    }).catch((err) => console.warn("API sync background error", err));
+
     return newId;
   };
 
@@ -170,6 +245,12 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
       })
     );
     triggerToast("تم تحديث حالة الطلب", `تم تغيير حالة الطلب ${id} إلى "${status}"`, "info");
+
+    fetch(`/api/employers/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    }).catch((err) => console.warn("API sync error", err));
   };
 
   const updateEmployerNotes = (id: string, notes: string) => {
@@ -182,11 +263,21 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
       })
     );
     triggerToast("تم حفظ الملاحظات", `تم تحديث الملاحظات الخاصة بالطلب ${id}`, "success");
+
+    fetch(`/api/employers/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes }),
+    }).catch((err) => console.warn("API sync error", err));
   };
 
   const deleteEmployerRequest = (id: string) => {
     setEmployerRequests((prev) => prev.filter((o) => o.id !== id));
     triggerToast("تم حذف الطلب", `تمت إزالة الطلب ${id}`, "warning");
+
+    fetch(`/api/employers/${id}`, {
+      method: "DELETE",
+    }).catch((err) => console.warn("API sync error", err));
   };
 
   // Candidate Actions
@@ -223,6 +314,12 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setNotifications((prev) => [newNotif, ...prev]);
     triggerToast("تم استلام السيرة الذاتية", `تم تسجيل ${data.fullName} في شبكة الكفاءات بنجاح`, "success");
 
+    fetch("/api/candidates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newCand),
+    }).catch((err) => console.warn("API sync error", err));
+
     return newId;
   };
 
@@ -236,6 +333,12 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
       })
     );
     triggerToast("تم تحديث حالة المرشح", `تم تغيير حالة ${id} بنجاح`, "info");
+
+    fetch(`/api/candidates/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    }).catch((err) => console.warn("API sync error", err));
   };
 
   const updateCandidateNotes = (id: string, hrNotes: string) => {
@@ -248,11 +351,21 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
       })
     );
     triggerToast("تم حفظ ملاحظات HR", `تم تحديث الملاحظات السرية للمرشح ${id}`, "success");
+
+    fetch(`/api/candidates/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hrNotes }),
+    }).catch((err) => console.warn("API sync error", err));
   };
 
   const deleteCandidate = (id: string) => {
     setCandidates((prev) => prev.filter((c) => c.id !== id));
     triggerToast("تم حذف المرشح", `تمت إزالة ملف المرشح ${id}`, "warning");
+
+    fetch(`/api/candidates/${id}`, {
+      method: "DELETE",
+    }).catch((err) => console.warn("API sync error", err));
   };
 
   // Assign / Remove Candidate to Order
@@ -262,12 +375,18 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
         if (order.id === orderId) {
           const current = order.assignedCandidateIds || [];
           if (!current.includes(candidateId)) {
-            return {
+            const updated = {
               ...order,
               assignedCandidateIds: [...current, candidateId],
-              status: order.status === "new" ? "shortlisting" : order.status,
+              status: (order.status === "new" ? "shortlisting" : order.status) as RequestStatus,
               updatedAt: new Date().toISOString(),
             };
+            fetch(`/api/employers/${orderId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(updated),
+            }).catch(() => {});
+            return updated;
           }
         }
         return order;
@@ -279,12 +398,18 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
         if (cand.id === candidateId) {
           const current = cand.matchedEmployerIds || [];
           if (!current.includes(orderId)) {
-            return {
+            const updated = {
               ...cand,
               matchedEmployerIds: [...current, orderId],
-              status: cand.status === "available" ? "shortlisted" : cand.status,
+              status: (cand.status === "available" ? "shortlisted" : cand.status) as CandidateStatus,
               updatedAt: new Date().toISOString(),
             };
+            fetch(`/api/candidates/${candidateId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(updated),
+            }).catch(() => {});
+            return updated;
           }
         }
         return cand;
@@ -298,11 +423,17 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setEmployerRequests((prev) =>
       prev.map((order) => {
         if (order.id === orderId) {
-          return {
+          const updated = {
             ...order,
             assignedCandidateIds: (order.assignedCandidateIds || []).filter((cid) => cid !== candidateId),
             updatedAt: new Date().toISOString(),
           };
+          fetch(`/api/employers/${orderId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updated),
+          }).catch(() => {});
+          return updated;
         }
         return order;
       })
@@ -311,11 +442,17 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setCandidates((prev) =>
       prev.map((cand) => {
         if (cand.id === candidateId) {
-          return {
+          const updated = {
             ...cand,
             matchedEmployerIds: (cand.matchedEmployerIds || []).filter((oid) => oid !== orderId),
             updatedAt: new Date().toISOString(),
           };
+          fetch(`/api/candidates/${candidateId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updated),
+          }).catch(() => {});
+          return updated;
         }
         return cand;
       })
@@ -326,7 +463,6 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   // Smart Matching Engine
   const calculateMatchScore = (order: EmployerRequest, candidate: Candidate): MatchScore => {
-    // 1. Category Match (30%)
     let categoryScore = 0;
     if (order.industry === candidate.category) {
       categoryScore = 100;
@@ -339,7 +475,6 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
       categoryScore = 30;
     }
 
-    // 2. Skills Match (40%)
     const orderSkills = order.requiredSkills.map((s) => s.trim().toLowerCase());
     const candSkills = candidate.skills.map((s) => s.trim().toLowerCase());
     
@@ -357,7 +492,6 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     const skillsScore = orderSkills.length > 0 ? Math.round((matchedSkills.length / orderSkills.length) * 100) : 70;
 
-    // 3. Experience Match (20%)
     let expScore = 70;
     const years = candidate.yearsOfExperience;
     if (order.experienceLevel === "lead" || order.experienceLevel === "executive") {
@@ -370,7 +504,6 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
       expScore = years >= 1 ? 100 : 70;
     }
 
-    // 4. Salary Budget Match (10%)
     let salaryScore = 80;
     if (candidate.expectedSalary <= order.maxSalary && candidate.expectedSalary >= order.minSalary * 0.9) {
       salaryScore = 100;
@@ -417,21 +550,36 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
+    fetch("/api/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    }).catch(() => {});
   };
 
   const markAllNotificationsAsRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     triggerToast("تم تحديد الإشعارات كمقروءة", "تم تحديث كافة التنبيهات", "info");
+    fetch("/api/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ markAll: true }),
+    }).catch(() => {});
   };
 
-  const resetToDefaultData = () => {
+  const resetToDefaultData = async () => {
     setEmployerRequests(initialEmployerRequests);
     setCandidates(initialCandidates);
     setNotifications(initialNotifications);
     localStorage.setItem("al_ekhlas_orders", JSON.stringify(initialEmployerRequests));
     localStorage.setItem("al_ekhlas_candidates", JSON.stringify(initialCandidates));
     localStorage.setItem("al_ekhlas_notifications", JSON.stringify(initialNotifications));
-    triggerToast("تمت استعادة البيانات التجريبية", "تمت إعادة ضبط كافة الأوامر وقاعدة الكفاءات", "info");
+    
+    try {
+      await fetch("/api/seed", { method: "POST" });
+    } catch {}
+
+    triggerToast("تمت استعادة البيانات الافتراضية", "تمت مزامنة قاعدة البيانات والأوامر", "info");
   };
 
   const unreadNotificationCount = notifications.filter((n) => !n.read).length;
@@ -444,6 +592,7 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
         notifications,
         unreadNotificationCount,
         toasts,
+        dbStatus,
         addEmployerRequest,
         updateEmployerStatus,
         updateEmployerNotes,
@@ -460,6 +609,7 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
         markAllNotificationsAsRead,
         triggerToast,
         removeToast,
+        refreshFromDatabase,
         resetToDefaultData,
       }}
     >
