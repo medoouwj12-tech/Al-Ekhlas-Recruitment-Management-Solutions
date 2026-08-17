@@ -2,27 +2,28 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db/mongodb";
 import { EmployerRequestModel } from "@/lib/models/EmployerRequest";
 import { NotificationModel } from "@/lib/models/Notification";
-import { initialEmployerRequests } from "@/lib/mockData";
+import { getStoredOrders, saveStoredOrder } from "@/lib/db/fileStorage";
+import { EmployerRequest } from "@/lib/types";
 
 export async function GET(req: NextRequest) {
   try {
     const conn = await connectToDatabase();
     if (!conn) {
-      // Fallback if MONGODB_URI not set
-      return NextResponse.json({ success: true, source: "mock", data: initialEmployerRequests });
+      const fileOrders = getStoredOrders();
+      return NextResponse.json({ success: true, source: "file_db", data: fileOrders });
     }
 
     let orders = await EmployerRequestModel.find({}).sort({ createdAt: -1 }).lean();
-    
-    // Auto-seed if empty
     if (!orders || orders.length === 0) {
-      await EmployerRequestModel.insertMany(initialEmployerRequests);
+      const fileOrders = getStoredOrders();
+      await EmployerRequestModel.insertMany(fileOrders);
       orders = await EmployerRequestModel.find({}).sort({ createdAt: -1 }).lean();
     }
 
     return NextResponse.json({ success: true, source: "mongodb", data: orders });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    const fileOrders = getStoredOrders();
+    return NextResponse.json({ success: true, source: "file_db_fallback", data: fileOrders });
   }
 }
 
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
     const newId = `EMP-2026-${Date.now().toString().slice(-4)}`;
     const now = new Date().toISOString();
 
-    const orderData = {
+    const orderData: EmployerRequest = {
       ...body,
       id: newId,
       status: "new",
@@ -43,26 +44,30 @@ export async function POST(req: NextRequest) {
       assignedCandidateIds: [],
     };
 
-    if (conn) {
-      const created = await EmployerRequestModel.create(orderData);
-      
-      // Create notification
-      await NotificationModel.create({
-        id: `NOTIF-${Date.now()}`,
-        title: `طلب توظيف جديد من ${body.companyName}`,
-        titleEn: `New Hiring Request from ${body.companyName}`,
-        message: `تم تقديم طلب لشغل وظيفة "${body.jobTitle}" بنجاح`,
-        messageEn: `Job request submitted for "${body.jobTitle}"`,
-        type: "employer_request",
-        createdAt: now,
-        read: false,
-        link: "/admin/employers",
-      });
+    // Always persist to local file DB immediately
+    saveStoredOrder(orderData);
 
-      return NextResponse.json({ success: true, data: created, id: newId });
+    // Also persist to MongoDB if connected
+    if (conn) {
+      try {
+        await EmployerRequestModel.create(orderData);
+        await NotificationModel.create({
+          id: `NOTIF-${Date.now()}`,
+          title: `طلب توظيف جديد من ${body.companyName}`,
+          titleEn: `New Hiring Request from ${body.companyName}`,
+          message: `تم تقديم طلب لشغل وظيفة "${body.jobTitle}" بنجاح`,
+          messageEn: `Job request submitted for "${body.jobTitle}"`,
+          type: "employer_request",
+          createdAt: now,
+          read: false,
+          link: "/admin/employers",
+        });
+      } catch (dbErr) {
+        console.warn("MongoDB write error, persisted to file DB:", dbErr);
+      }
     }
 
-    return NextResponse.json({ success: true, source: "mock", data: orderData, id: newId });
+    return NextResponse.json({ success: true, data: orderData, id: newId });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

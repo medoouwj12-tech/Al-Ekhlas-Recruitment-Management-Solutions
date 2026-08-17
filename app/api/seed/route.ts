@@ -3,35 +3,30 @@ import { connectToDatabase } from "@/lib/db/mongodb";
 import { EmployerRequestModel } from "@/lib/models/EmployerRequest";
 import { CandidateModel } from "@/lib/models/Candidate";
 import { NotificationModel } from "@/lib/models/Notification";
-import { initialCandidates, initialEmployerRequests, initialNotifications } from "@/lib/mockData";
+import { resetStoredDb, getStoredOrders, getStoredCandidates, getStoredNotifications } from "@/lib/db/fileStorage";
 
 export async function POST(req: NextRequest) {
   try {
+    // Always reset local file DB
+    const freshDb = resetStoredDb();
+
     const conn = await connectToDatabase();
-    if (!conn) {
-      return NextResponse.json({
-        success: false,
-        message: "MongoDB is not connected. Please provide MONGODB_URI.",
-      }, { status: 400 });
+    if (conn) {
+      await EmployerRequestModel.deleteMany({});
+      await CandidateModel.deleteMany({});
+      await NotificationModel.deleteMany({});
+      await EmployerRequestModel.insertMany(freshDb.orders);
+      await CandidateModel.insertMany(freshDb.candidates);
+      await NotificationModel.insertMany(freshDb.notifications);
     }
-
-    // Clear existing
-    await EmployerRequestModel.deleteMany({});
-    await CandidateModel.deleteMany({});
-    await NotificationModel.deleteMany({});
-
-    // Insert fresh seed data
-    await EmployerRequestModel.insertMany(initialEmployerRequests);
-    await CandidateModel.insertMany(initialCandidates);
-    await NotificationModel.insertMany(initialNotifications);
 
     return NextResponse.json({
       success: true,
       message: "Database seeded successfully with initial data!",
       counts: {
-        orders: initialEmployerRequests.length,
-        candidates: initialCandidates.length,
-        notifications: initialNotifications.length,
+        orders: freshDb.orders.length,
+        candidates: freshDb.candidates.length,
+        notifications: freshDb.notifications.length,
       },
     });
   } catch (error: any) {
