@@ -237,22 +237,30 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="space-y-3">
-            {Object.entries(industryCounts).map(([indKey, count]) => {
-              const label = (t as any)(`ind_${indKey}`) || indKey;
-              return (
-                <div
-                  key={indKey}
-                  className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs"
-                >
-                  <span className="font-semibold text-slate-700 dark:text-slate-200 truncate max-w-[200px]">
-                    {label}
-                  </span>
-                  <span className="px-2.5 py-1 rounded-full font-bold bg-brand-500/10 text-brand-600 dark:text-brand-400">
-                    {count} {language === "ar" ? "طلب" : "orders"}
-                  </span>
-                </div>
-              );
-            })}
+            {Object.entries(industryCounts).length === 0 ? (
+              <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
+                {language === "ar"
+                  ? "لا توجد تصنيفات حتى الآن — ستظهر تلقائياً مع تسجيل طلبات الشركات"
+                  : "No industry data yet — will populate automatically with incoming orders"}
+              </div>
+            ) : (
+              Object.entries(industryCounts).map(([indKey, count]) => {
+                const label = (t as any)(`ind_${indKey}`) || indKey;
+                return (
+                  <div
+                    key={indKey}
+                    className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs"
+                  >
+                    <span className="font-semibold text-slate-700 dark:text-slate-200 truncate max-w-[200px]">
+                      {label}
+                    </span>
+                    <span className="px-2.5 py-1 rounded-full font-bold bg-brand-500/10 text-brand-600 dark:text-brand-400">
+                      {count} {language === "ar" ? "طلب" : "orders"}
+                    </span>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
@@ -275,40 +283,57 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="divide-y divide-slate-100 dark:divide-slate-800">
-          {employerRequests.slice(0, 4).map((order) => {
-            const statusStyle = getStatusColor(order.status);
-            return (
-              <div key={order.id} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-start sm:items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold text-xs flex-shrink-0">
-                    <Building2 className="w-4 h-4 text-brand-500" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">
-                        {order.companyName}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        {order.id}
-                      </span>
+          {employerRequests.length === 0 ? (
+            <div className="py-8 text-center space-y-2">
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                {language === "ar"
+                  ? "لا توجد طلبات توظيف مسجلة حتى الآن — ستظهر هنا فور إرسالها من الشركات"
+                  : "No recruitment requests submitted yet — incoming requests will appear here instantly"}
+              </p>
+              <Link
+                href="/employers"
+                className="inline-flex items-center gap-1 text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline"
+              >
+                <span>{language === "ar" ? "تقديم أول طلب شركة" : "Submit first employer order"}</span>
+                <span>→</span>
+              </Link>
+            </div>
+          ) : (
+            employerRequests.slice(0, 4).map((order) => {
+              const statusStyle = getStatusColor(order.status);
+              return (
+                <div key={order.id} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold text-xs flex-shrink-0">
+                      <Building2 className="w-4 h-4 text-brand-500" />
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      {order.jobTitle} • {formatCurrency(order.minSalary, order.currency, language)} - {formatCurrency(order.maxSalary, order.currency, language)}
-                    </p>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white">
+                          {order.companyName}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {order.id}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {order.jobTitle} • {formatCurrency(order.minSalary, order.currency, language)} - {formatCurrency(order.maxSalary, order.currency, language)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 self-end sm:self-center">
+                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border}`}>
+                      {(t as any)(`status_${order.status}`)}
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      {formatRelativeTime(order.submittedAt, language)}
+                    </span>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-3 self-end sm:self-center">
-                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border}`}>
-                    {(t as any)(`status_${order.status}`)}
-                  </span>
-                  <span className="text-[11px] text-slate-400">
-                    {formatRelativeTime(order.submittedAt, language)}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
     </div>

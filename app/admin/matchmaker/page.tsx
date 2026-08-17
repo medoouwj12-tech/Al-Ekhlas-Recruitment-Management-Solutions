@@ -101,185 +101,220 @@ function MatchmakerContent() {
       </div>
 
       {/* Order Selector Banner */}
-      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-          {t("selectOrderToMatch")}
-        </label>
-        <select
-          value={selectedOrderId}
-          onChange={(e) => setSelectedOrderId(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl text-sm font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 outline-none"
-        >
-          {employerRequests.map((order) => (
-            <option key={order.id} value={order.id}>
-              {order.id} - {order.companyName} | {order.jobTitle} ({formatCurrency(order.minSalary, order.currency, language)} - {formatCurrency(order.maxSalary, order.currency, language)})
-            </option>
-          ))}
-        </select>
-
-        {/* Selected Order Summary Chips */}
-        {currentOrder && (
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 flex flex-wrap items-center justify-between gap-4 text-xs">
-            <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-brand-500" />
-              <span className="font-bold text-slate-900 dark:text-white">
-                {currentOrder.companyName}
-              </span>
-              <span className="text-slate-400">• {currentOrder.contactPerson}</span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold">
-                {(t as any)(`ind_${currentOrder.industry}`)}
-              </span>
-              <span className="px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold">
-                {(t as any)(`exp_${currentOrder.experienceLevel}`)}
-              </span>
-              <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold">
-                {formatCurrency(currentOrder.minSalary, currentOrder.currency, language)} - {formatCurrency(currentOrder.maxSalary, currentOrder.currency, language)}
-              </span>
-            </div>
+      {employerRequests.length === 0 ? (
+        <div className="p-10 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-center space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+            <Sparkles className="w-7 h-7" />
           </div>
-        )}
-      </div>
-
-      {/* Main Matching Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left 8 Cols: Ranked Matching Candidates */}
-        <div className="lg:col-span-8 space-y-4">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>{t("matchingResultsTitle")}</span>
-            <span className="text-xs font-normal text-slate-400">
-              ({matchedResults.length} {language === "ar" ? "مرشح تم فرزهم" : "candidates evaluated"})
-            </span>
-          </h3>
-
-          <div className="space-y-4">
-            {matchedResults.map(({ candidate, score }) => {
-              const isAssigned = assignedCandidateIds.includes(candidate.id);
-              
-              // Score styling
-              const scoreBadgeColor =
-                score.overallScore >= 85
-                  ? "from-emerald-600 to-teal-600 text-white"
-                  : score.overallScore >= 70
-                  ? "from-blue-600 to-indigo-600 text-white"
-                  : "from-amber-600 to-orange-600 text-white";
-
-              return (
-                <div
-                  key={candidate.id}
-                  className={`p-6 rounded-2xl bg-white dark:bg-slate-900 border transition-all ${
-                    isAssigned
-                      ? "border-emerald-500 ring-2 ring-emerald-500/20 shadow-md"
-                      : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
-                  }`}
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                    {/* Candidate Info */}
-                    <div className="flex items-start gap-3">
-                      <div className="w-11 h-11 rounded-2xl bg-brand-500/10 text-brand-600 dark:text-brand-400 font-black text-sm flex items-center justify-center flex-shrink-0">
-                        {candidate.fullName.slice(0, 2)}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-base font-bold text-slate-900 dark:text-white">
-                            {candidate.fullName}
-                          </h4>
-                          <span className="text-[11px] font-mono text-slate-400">
-                            {candidate.id}
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {candidate.currentTitle} • {candidate.yearsOfExperience} {language === "ar" ? "سنوات خبرة" : "yrs exp"} • {candidate.city}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Overall Match Score Badge */}
-                    <div className="flex items-center gap-3 self-end sm:self-start">
-                      <div className={`px-3 py-1.5 rounded-xl bg-gradient-to-r ${scoreBadgeColor} font-black text-sm shadow-sm flex items-center gap-1.5`}>
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>{score.overallScore}%</span>
-                        <span className="text-[10px] font-medium opacity-90">
-                          {t("matchScore")}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Skills Breakdown */}
-                  <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
-                    {/* Matched Skills */}
-                    {score.matchedSkills.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                        <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 me-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>{t("skillsMatched")}:</span>
-                        </span>
-                        {score.matchedSkills.map((s, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold text-[11px] border border-emerald-500/20"
-                          >
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Missing Skills */}
-                    {score.missingSkills.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                        <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1 me-1">
-                          <XCircle className="w-3.5 h-3.5" />
-                          <span>{t("missingSkills")}:</span>
-                        </span>
-                        {score.missingSkills.map((s, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 font-medium text-[11px]"
-                          >
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Actions Footer */}
-                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                      {language === "ar" ? "الراتب المتوقع:" : "Expected:"} {formatCurrency(candidate.expectedSalary, candidate.currency, language)}
-                    </span>
-
-                    <button
-                      onClick={() => handleToggleShortlist(candidate.id)}
-                      className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                        isAssigned
-                          ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/20"
-                          : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-brand-600 hover:text-white"
-                      }`}
-                    >
-                      {isAssigned ? (
-                        <>
-                          <Check className="w-3.5 h-3.5" />
-                          <span>{language === "ar" ? "في القائمة المختصرة" : "Shortlisted"}</span>
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>{t("addToShortlist")}</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              {language === "ar" ? "لا توجد طلبات توظيف حالياً للمطابقة" : "No active job orders to match"}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+              {language === "ar"
+                ? "بمجرد تقديم أول طلب توظيف من إحدى الشركات، ستعمل خوارزمية الذكاء الاصطناعي على مطابقة وفحص الكفاءات وتحديد نسب التوافق تلقائياً."
+                : "Once an employer submits a job request, the AI engine will automatically evaluate candidate match scores and skills alignment."}
+            </p>
+          </div>
+          <div className="pt-2">
+            <a
+              href="/employers"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-brand-600 hover:bg-brand-500 shadow-md shadow-brand-500/20 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{language === "ar" ? "تقديم طلب شركة تجريبي" : "Submit New Employer Request"}</span>
+            </a>
           </div>
         </div>
+      ) : (
+        <>
+          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+              {t("selectOrderToMatch")}
+            </label>
+            <select
+              value={selectedOrderId}
+              onChange={(e) => setSelectedOrderId(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl text-sm font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 outline-none"
+            >
+              {employerRequests.map((order) => (
+                <option key={order.id} value={order.id}>
+                  {order.id} - {order.companyName} | {order.jobTitle} ({formatCurrency(order.minSalary, order.currency, language)} - {formatCurrency(order.maxSalary, order.currency, language)})
+                </option>
+              ))}
+            </select>
+
+            {/* Selected Order Summary Chips */}
+            {currentOrder && (
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 flex flex-wrap items-center justify-between gap-4 text-xs">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-brand-500" />
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {currentOrder.companyName}
+                  </span>
+                  <span className="text-slate-400">• {currentOrder.contactPerson}</span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold">
+                    {(t as any)(`ind_${currentOrder.industry}`)}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold">
+                    {(t as any)(`exp_${currentOrder.experienceLevel}`)}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold">
+                    {formatCurrency(currentOrder.minSalary, currentOrder.currency, language)} - {formatCurrency(currentOrder.maxSalary, currentOrder.currency, language)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Main Matching Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left 8 Cols: Ranked Matching Candidates */}
+            <div className="lg:col-span-8 space-y-4">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span>{t("matchingResultsTitle")}</span>
+                <span className="text-xs font-normal text-slate-400">
+                  ({matchedResults.length} {language === "ar" ? "مرشح تم فرزهم" : "candidates evaluated"})
+                </span>
+              </h3>
+
+              <div className="space-y-4">
+                {matchedResults.length === 0 ? (
+                  <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400">
+                    {language === "ar"
+                      ? "لا توجد كفاءات مسجلة في قاعدة البيانات بعد للمطابقة مع هذا الطلب"
+                      : "No candidate profiles in the database to match against this order"}
+                  </div>
+                ) : (
+                  matchedResults.map(({ candidate, score }) => {
+                    const isAssigned = assignedCandidateIds.includes(candidate.id);
+                    
+                    // Score styling
+                    const scoreBadgeColor =
+                      score.overallScore >= 85
+                        ? "from-emerald-600 to-teal-600 text-white"
+                        : score.overallScore >= 70
+                        ? "from-blue-600 to-indigo-600 text-white"
+                        : "from-amber-600 to-orange-600 text-white";
+
+                    return (
+                      <div
+                        key={candidate.id}
+                        className={`p-6 rounded-2xl bg-white dark:bg-slate-900 border transition-all ${
+                          isAssigned
+                            ? "border-emerald-500 ring-2 ring-emerald-500/20 shadow-md"
+                            : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                          {/* Candidate Info */}
+                          <div className="flex items-start gap-3">
+                            <div className="w-11 h-11 rounded-2xl bg-brand-500/10 text-brand-600 dark:text-brand-400 font-black text-sm flex items-center justify-center flex-shrink-0">
+                              {candidate.fullName.slice(0, 2)}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="text-base font-bold text-slate-900 dark:text-white">
+                                  {candidate.fullName}
+                                </h4>
+                                <span className="text-[11px] font-mono text-slate-400">
+                                  {candidate.id}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                {candidate.currentTitle} • {candidate.yearsOfExperience} {language === "ar" ? "سنوات خبرة" : "yrs exp"} • {candidate.city}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Overall Match Score Badge */}
+                          <div className="flex items-center gap-3 self-end sm:self-start">
+                            <div className={`px-3 py-1.5 rounded-xl bg-gradient-to-r ${scoreBadgeColor} font-black text-sm shadow-sm flex items-center gap-1.5`}>
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>{score.overallScore}%</span>
+                              <span className="text-[10px] font-medium opacity-90">
+                                {t("matchScore")}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Skills Breakdown */}
+                        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                          {/* Matched Skills */}
+                          {score.matchedSkills.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 me-1">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>{t("skillsMatched")}:</span>
+                              </span>
+                              {score.matchedSkills.map((s, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold text-[11px] border border-emerald-500/20"
+                                >
+                                  {s}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Missing Skills */}
+                          {score.missingSkills.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                              <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1 me-1">
+                                <XCircle className="w-3.5 h-3.5" />
+                                <span>{t("missingSkills")}:</span>
+                              </span>
+                              {score.missingSkills.map((s, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 font-medium text-[11px]"
+                                >
+                                  {s}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Actions Footer */}
+                        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                            {language === "ar" ? "الراتب المتوقع:" : "Expected:"} {formatCurrency(candidate.expectedSalary, candidate.currency, language)}
+                          </span>
+
+                          <button
+                            onClick={() => handleToggleShortlist(candidate.id)}
+                            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                              isAssigned
+                                ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/20"
+                                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-brand-600 hover:text-white"
+                            }`}
+                          >
+                            {isAssigned ? (
+                              <>
+                                <Check className="w-3.5 h-3.5" />
+                                <span>{language === "ar" ? "في القائمة المختصرة" : "Shortlisted"}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>{t("addToShortlist")}</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
 
         {/* Right 4 Cols: Current Shortlist Drawer */}
         <div className="lg:col-span-4 sticky top-24 p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
@@ -336,6 +371,8 @@ function MatchmakerContent() {
           )}
         </div>
       </div>
+      </>
+      )}
 
       {/* Shortlist Client Export Dossier Modal */}
       {shortlistModalOpen && currentOrder && (
