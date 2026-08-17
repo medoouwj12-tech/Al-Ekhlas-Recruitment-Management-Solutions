@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useRecruitment } from "@/context/RecruitmentContext";
 import { 
   Bell, 
-  Search, 
   Globe, 
   Sun, 
   Moon, 
@@ -14,8 +14,7 @@ import {
   CheckCheck, 
   Sparkles, 
   ExternalLink,
-  CheckCircle2,
-  Clock,
+  LogOut,
   X
 } from "lucide-react";
 import Link from "next/link";
@@ -28,6 +27,7 @@ interface AdminHeaderProps {
 export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar }) => {
   const { t, language, toggleLanguage, dir } = useLanguage();
   const { theme, toggleTheme } = useTheme();
+  const router = useRouter();
   const { 
     notifications, 
     unreadNotificationCount, 
@@ -36,6 +36,16 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar }) => 
   } = useRecruitment();
 
   const [notifOpen, setNotifOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      router.replace("/admin/login");
+    }
+  };
 
   return (
     <header className="sticky top-0 z-30 h-20 w-full bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 flex items-center justify-between gap-4">
@@ -182,6 +192,17 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar }) => 
           <Sparkles className="w-3.5 h-3.5" />
           <span>{language === "ar" ? "المطابق الذكي" : "Smart Match"}</span>
         </Link>
+
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          disabled={loggingOut}
+          title={language === "ar" ? "تسجيل الخروج" : "Logout"}
+          className="p-2 text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg border border-slate-200 dark:border-slate-800 transition-all disabled:opacity-50"
+          aria-label="Logout"
+        >
+          <LogOut className="w-4 h-4" />
+        </button>
       </div>
     </header>
   );
