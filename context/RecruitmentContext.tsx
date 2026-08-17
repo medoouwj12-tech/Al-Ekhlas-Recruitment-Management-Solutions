@@ -88,11 +88,11 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
         });
       }
 
-      // 2. Fetch Orders
+      // 2. Fetch Orders (server is the source of truth; always apply, even if empty)
       const ordersRes = await fetch("/api/employers");
       if (ordersRes.ok) {
         const ordersData = await ordersRes.json();
-        if (ordersData.success && Array.isArray(ordersData.data) && ordersData.data.length > 0) {
+        if (ordersData.success && Array.isArray(ordersData.data)) {
           setEmployerRequests(ordersData.data);
           localStorage.setItem("al_ekhlas_orders", JSON.stringify(ordersData.data));
         }
@@ -102,7 +102,7 @@ export const RecruitmentProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const candRes = await fetch("/api/candidates");
       if (candRes.ok) {
         const candData = await candRes.json();
-        if (candData.success && Array.isArray(candData.data) && candData.data.length > 0) {
+        if (candData.success && Array.isArray(candData.data)) {
           setCandidates(candData.data);
           localStorage.setItem("al_ekhlas_candidates", JSON.stringify(candData.data));
         }
