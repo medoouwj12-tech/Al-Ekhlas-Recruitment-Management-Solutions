@@ -142,14 +142,14 @@ export default function AdminSettingsPage() {
           <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
             <span className="text-slate-400 block">{language === "ar" ? "الطلبات المحفوظة (Orders)" : "Saved Orders"}</span>
             <span className="text-lg font-black text-brand-300">
-              {dbStatus.counts?.orders || 6} {language === "ar" ? "طلب شركة مسجل" : "orders"}
+              {dbStatus.counts?.orders ?? 0} {language === "ar" ? "طلب شركة مسجل" : "orders"}
             </span>
           </div>
 
           <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
             <span className="text-slate-400 block">{language === "ar" ? "الكفاءات المسجلة (Candidates)" : "Vetted Candidates"}</span>
             <span className="text-lg font-black text-emerald-300">
-              {dbStatus.counts?.candidates || 8} {language === "ar" ? "مرشح مفحوص" : "candidates"}
+              {dbStatus.counts?.candidates ?? 0} {language === "ar" ? "مرشح مفحوص" : "candidates"}
             </span>
           </div>
         </div>
